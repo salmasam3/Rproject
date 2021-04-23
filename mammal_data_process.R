@@ -1,47 +1,43 @@
-mean_mass <- function (masses)
+library(dplyr)
+
+read_mass_data <- function(filename, header = TRUE, column_names,
+                           na.strings = "-999")
 {
-    #Return the mean of a list of masses
-    mean_mass <- mean(masses, na.rm = TRUE)
-    return(mean_mass)
+    ## Reads in mass data from a tab delimited file
+    if(header)
+    {
+        all_data <- read.table(filename, sep ="\t",
+                               na.strings = na.strings, stringsAsFactor = FALSE)
+    } else
+    {
+        all_data <- read.table(filename, sep ="\t",
+                               col.names = column_names, na.strings = na.strings, stringsAsFactors = FALSE)
+    }
+    return(all_data)
 }
 
-all_of_it <- function ()
+data_error_correct <- function (df)
 {
-    all_data <- read.table("MOMv3.3.txt", sep ="\t", 
-                           col.names=c("continent", "status", "order", "family","genus", "species", "log10mass", "mass", "ref"), na.strings = "-999", stringsAsFactors = FALSE)
-    
-    continents <- all_data$continent
-    status <- all_data$status
-    masses <-  all_data$mass
-    
-    continents <- ifelse(continents == "Af", "AF", continents)
-    
-    results <- NULL
-    for (continent in unique(continents))
-    {
-        extinct_masses <- masses[(status=="extinct") & (continents==continent)]
-        extant_masses <- masses[(status=="extant") & (continents==continent)]
-        avg_extinct_mass <- mean_mass(extinct_masses)
-        avg_extant_mass <- mean_mass(extant_masses)
-        diff <-  avg_extant_mass - avg_extinct_mass
-        results <- rbind(results, c(continent, avg_extant_mass, avg_extinct_mass, diff))
-    }
-    
-    for (line in 1:dim(results)[2])
-    {
-        print(results[line,])
-    }
-    results
+    ## Corrects known error with some row names having "Af" instead of
+    ## "AF"
+    df <- df %>% mutate(continent = ifelse(continent == "Af", "AF", continent))
+    return(df)
 }
 
 
-good <- all_of_it()
-good
-data.frame(good) -> good
-names(good) <- c("continent", "avg_extant_mass", "avg_extinct_mass", "diff")
-good$continent <- as.character(good$continent)
-good$diff <- as.numeric(as.character(good$diff))
-good$avg_extinct_mass <- as.numeric(as.character(good$avg_extinct_mass))
-good$avg_extant_mass <- as.numeric(as.character(good$avg_extant_mass))
+calculate_mean_masses <- function(df)
+{
+    ## Create a data frame that contains columns of average biomass of
+    ## extant and extinct mammals and the difference by continent
+    
+    extinct <- df %>% filter(status == "extinct") %>% group_by(continent) %>%
+        summarise(avg_extinct_mass = mean(mass, na.rm = TRUE))
+    extant <- df %>% filter(status == "extant") %>% group_by(continent) %>%
+        summarise(avg_extant_mass = mean(mass, na.rm = TRUE))
+    
+    continent_masses <- left_join(extant, extinct) %>%
+        mutate(diff = avg_extant_mass - avg_extinct_mass)
+    
+    return(ungroup(continent_masses))
+}
 
-write.csv(good, "good.csv", row.names = FALSE)
