@@ -1,4 +1,4 @@
-source("cleaner_code.R")
+source("../mammal_data_process.R")
 library(testthat)
 
 test_that("Table produced", expect_equal(dim(all_of_it())[1], 7))

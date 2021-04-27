@@ -7,7 +7,7 @@ mean_mass <- function (masses)
 
 all_of_it <- function ()
 {
-    all_data <- read.table("MOMv3.3.txt", sep ="\t", 
+    all_data <- read.table("../MOMv3.3.txt", sep ="\t", 
                            col.names=c("continent", "status", "order", "family","genus", "species", "log10mass", "mass", "ref"), na.strings = "-999", stringsAsFactors = FALSE)
     
     continents <- all_data$continent
